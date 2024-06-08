@@ -1,0 +1,7 @@
+ami_id            = "ami-0eb9d67c52f5c80e5"
+ssh_key_name      = "static-vault-key-pair"
+security_group_id = "sg-04d0d6ceacd9cb479"
+subnet_id         = "subnet-0c623711837f700b6"
+server_name       = "VARIABLES_vault_sandcastle"
+
+
