@@ -126,7 +126,7 @@ resource "aws_lb_listener" "vault_sandcastle" {
   # IF true, create 1 resource; 
   # ELSE create 0 resources (none)
   count = var.create_load_balancer ? 1 : 0
-  
+
   load_balancer_arn = aws_lb.vault_sandcastle[count.index].arn
   port              = var.listener_port
   protocol          = var.listener_protocol

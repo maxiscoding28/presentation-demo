@@ -81,7 +81,7 @@ resource "aws_autoscaling_group" "vault_sandcastle" {
   min_size = var.min_server_count
 
   # Association with load balancer target group resource
-  target_group_arns = [aws_lb_target_group.vault_sandcastle.arn]
+  target_group_arns = [data.aws_lb_target_group.vault_sandcastle.arn]
 
   # Reference to launch template createed above
   launch_template {
@@ -96,26 +96,30 @@ resource "aws_autoscaling_group" "vault_sandcastle" {
     propagate_at_launch = true
   }
 }
-resource "aws_lb" "vault_sandcastle" {
-  load_balancer_type = var.load_balancer_type
-  security_groups    = [var.loadbalancer_security_group_id]
-  subnets            = [var.subnet_id_a, var.subnet_id_b]
+# resource "aws_lb" "vault_sandcastle" {
+#   load_balancer_type = var.load_balancer_type
+#   security_groups    = [var.loadbalancer_security_group_id]
+#   subnets            = [var.subnet_id_a, var.subnet_id_b]
+#   tags = {
+#     Name = "4-LOAD_BALANCER"
+#   }
+# }
+data "aws_lb" "vault_sandcastle" {
+  tags = {
+    Name = "4-LOAD_BALANCER"
+  }
 }
-resource "aws_lb_target_group" "vault_sandcastle" {
-  port     = var.target_group_port
-  protocol = var.target_group_protocol
-  vpc_id   = var.vpc_id
-  health_check {
-    path    = var.target_group_health_check_path
-    matcher = var.target_group_health_check_codes
+data "aws_lb_target_group" "vault_sandcastle" {
+  tags = {
+    Name = "4-LOAD_BALANCER"
   }
 }
 resource "aws_lb_listener" "vault_sandcastle" {
-  load_balancer_arn = aws_lb.vault_sandcastle.arn
+  load_balancer_arn = data.aws_lb.vault_sandcastle.arn
   port              = var.listener_port
   protocol          = var.listener_protocol
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.vault_sandcastle.arn
+    target_group_arn = data.aws_lb_target_group.vault_sandcastle.arn
   }
 }
