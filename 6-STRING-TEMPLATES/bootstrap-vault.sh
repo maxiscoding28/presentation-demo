@@ -18,7 +18,14 @@ listener "tcp" {
     tls_disable = 1
 }
 storage "raft" {
-  path = "/opt/vault/"  
+  path = "/opt/vault/" 
+  retry_join {
+    auto_join = "provider=aws tag_key=Name tag_value=6_STRING_TEMPLATES"
+    auto_join_scheme = "http"
+  } 
+}
+seal "awskms" {
+  kms_key_id = "${key_id}"
 }
 api_addr = "http://{{ GetPrivateInterfaces | attr \"address\" }}:8200"
 cluster_addr = "http://{{ GetPrivateInterfaces | attr \"address\" }}:8201"

@@ -5,6 +5,7 @@ variable "subnet_id_b" { type = string }
 variable "server_name" { type = string }
 variable "loadbalancer_security_group_id" { type = string }
 variable "vpc_id" { type = string }
+variable "key_id" { type = string }
 variable "ami_id" {
   type    = string
   default = "ami-0eb9d67c52f5c80e5"
@@ -80,7 +81,9 @@ resource "aws_launch_template" "vault_sandcastle" {
 
   user_data = var.bootstrap_vault ? base64encode(templatefile("${path.module}/bootstrap-vault.sh", {
     vault_version = var.vault_version
+    key_id        = var.key_id
   })) : null
+  iam_instance_profile { name = data.aws_iam_instance_profile.vault_sandcastle.name }
 }
 resource "aws_autoscaling_group" "vault_sandcastle" {
 
@@ -97,7 +100,7 @@ resource "aws_autoscaling_group" "vault_sandcastle" {
   min_size = var.min_server_count
 
   # Association with load balancer target group resource
-  target_group_arns = var.create_load_balancer ? [aws_lb_target_group.vault_sandcastle[0].arn] : []
+  target_group_arns = [data.aws_lb_target_group.vault_sandcastle.arn]
 
   # Reference to launch template createed above
   launch_template {
@@ -112,41 +115,41 @@ resource "aws_autoscaling_group" "vault_sandcastle" {
     propagate_at_launch = true
   }
 }
-resource "aws_lb" "vault_sandcastle" {
-  # IF true, create 1 resource; 
-  # ELSE create 0 resources (none)
-  count = var.create_load_balancer ? 1 : 0
+# resource "aws_lb" "vault_sandcastle" {
+#   # IF true, create 1 resource; 
+#   # ELSE create 0 resources (none)
+#   count = var.create_load_balancer ? 1 : 0
 
-  load_balancer_type = var.load_balancer_type
-  security_groups    = [var.loadbalancer_security_group_id]
-  subnets            = [var.subnet_id_a, var.subnet_id_b]
-}
-resource "aws_lb_target_group" "vault_sandcastle" {
-  # IF true, create 1 resource; 
-  # ELSE create 0 resources (none)
-  count = var.create_load_balancer ? 1 : 0
+#   load_balancer_type = var.load_balancer_type
+#   security_groups    = [var.loadbalancer_security_group_id]
+#   subnets            = [var.subnet_id_a, var.subnet_id_b]
+# }
+# resource "aws_lb_target_group" "vault_sandcastle" {
+#   # IF true, create 1 resource; 
+#   # ELSE create 0 resources (none)
+#   count = var.create_load_balancer ? 1 : 0
 
-  port     = var.target_group_port
-  protocol = var.target_group_protocol
-  vpc_id   = var.vpc_id
-  health_check {
-    path    = var.target_group_health_check_path
-    matcher = var.target_group_health_check_codes
-  }
-}
-resource "aws_lb_listener" "vault_sandcastle" {
-  # IF true, create 1 resource; 
-  # ELSE create 0 resources (none)
-  count = var.create_load_balancer ? 1 : 0
+#   port     = var.target_group_port
+#   protocol = var.target_group_protocol
+#   vpc_id   = var.vpc_id
+#   health_check {
+#     path    = var.target_group_health_check_path
+#     matcher = var.target_group_health_check_codes
+#   }
+# }
+# resource "aws_lb_listener" "vault_sandcastle" {
+#   # IF true, create 1 resource; 
+#   # ELSE create 0 resources (none)
+#   count = var.create_load_balancer ? 1 : 0
 
-  load_balancer_arn = aws_lb.vault_sandcastle[count.index].arn
-  port              = var.listener_port
-  protocol          = var.listener_protocol
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.vault_sandcastle[count.index].arn
-  }
-}
+#   load_balancer_arn = aws_lb.vault_sandcastle[count.index].arn
+#   port              = var.listener_port
+#   protocol          = var.listener_protocol
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.vault_sandcastle[count.index].arn
+#   }
+# }
 # For Demonstration Purposes
 resource "aws_instance" "vault_sandcastle" {
   ami                    = var.ami_id
@@ -166,4 +169,29 @@ rm -f /tmp/vault.zip
 vault server -dev -dev-listen-address=0.0.0.0:8200 > /home/ec2-user/vault-output.log 2>&1 &
     EOT
   )
+}
+data "aws_lb" "vault_sandcastle" {
+  tags = {
+    Name = "6-STRING_TEMPLATES"
+  }
+}
+data "aws_lb_target_group" "vault_sandcastle" {
+  tags = {
+    Name = "6-STRING_TEMPLATES"
+  }
+}
+resource "aws_lb_listener" "vault_sandcastle" {
+  load_balancer_arn = data.aws_lb.vault_sandcastle.arn
+  port              = var.listener_port
+  protocol          = var.listener_protocol
+  default_action {
+    type             = "forward"
+    target_group_arn = data.aws_lb_target_group.vault_sandcastle.arn
+  }
+}
+data "aws_iam_instance_profile" "vault_sandcastle" {
+  name = "6_STRING_TEMPLATES"
+}
+data "aws_kms_key" "by_alias" {
+  key_id = var.key_id
 }
